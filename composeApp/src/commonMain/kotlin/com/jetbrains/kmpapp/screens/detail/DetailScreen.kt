@@ -1,4 +1,4 @@
-package com.jetbrains.kmpapp.screens
+package com.jetbrains.kmpapp.screens.detail
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
@@ -20,41 +20,55 @@ import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
-import com.jetbrains.kmpapp.R
+import cafe.adriel.voyager.core.screen.Screen
+import cafe.adriel.voyager.koin.getScreenModel
+import cafe.adriel.voyager.navigator.LocalNavigator
+import cafe.adriel.voyager.navigator.currentOrThrow
 import com.jetbrains.kmpapp.data.MuseumObject
-import org.koin.androidx.compose.koinViewModel
+import com.jetbrains.kmpapp.screens.EmptyScreenContent
+import io.kamel.image.KamelImage
+import io.kamel.image.asyncPainterResource
+import kmp_app_template.composeapp.generated.resources.Res
+import kmp_app_template.composeapp.generated.resources.back
+import kmp_app_template.composeapp.generated.resources.label_artist
+import kmp_app_template.composeapp.generated.resources.label_credits
+import kmp_app_template.composeapp.generated.resources.label_date
+import kmp_app_template.composeapp.generated.resources.label_department
+import kmp_app_template.composeapp.generated.resources.label_dimensions
+import kmp_app_template.composeapp.generated.resources.label_medium
+import kmp_app_template.composeapp.generated.resources.label_repository
+import kmp_app_template.composeapp.generated.resources.label_title
+import org.jetbrains.compose.resources.ExperimentalResourceApi
+import org.jetbrains.compose.resources.stringResource
 
-@Composable
-fun DetailScreen(objectId: Int, navigateBack: () -> Unit) {
-    val viewModel: DetailViewModel = koinViewModel()
-    val obj by viewModel.museumObject.collectAsState()
+data class DetailScreen(val objectId: Int) : Screen {
+    @Composable
+    override fun Content() {
+        val navigator = LocalNavigator.currentOrThrow
+        val screenModel: DetailScreenModel = getScreenModel()
 
-    LaunchedEffect(objectId) {
-        viewModel.setId(objectId)
-    }
-
-    AnimatedContent(obj != null) { objectAvailable ->
-        if (objectAvailable) {
-            ObjectDetails(obj!!, onBackClick = navigateBack)
-        } else {
-            EmptyScreenContent(Modifier.fillMaxSize())
+        val obj by screenModel.getObject(objectId).collectAsState(initial = null)
+        AnimatedContent(obj != null) { objectAvailable ->
+            if (objectAvailable) {
+                ObjectDetails(obj!!, onBackClick = { navigator.pop() })
+            } else {
+                EmptyScreenContent(Modifier.fillMaxSize())
+            }
         }
     }
 }
 
+@OptIn(ExperimentalResourceApi::class)
 @Composable
 private fun ObjectDetails(
     obj: MuseumObject,
@@ -65,7 +79,7 @@ private fun ObjectDetails(
         topBar = {
             TopAppBar(backgroundColor = Color.White) {
                 IconButton(onClick = onBackClick) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.back))
                 }
             }
         },
@@ -76,8 +90,8 @@ private fun ObjectDetails(
                 .verticalScroll(rememberScrollState())
                 .padding(paddingValues)
         ) {
-            AsyncImage(
-                model = obj.primaryImageSmall,
+            KamelImage(
+                resource = asyncPainterResource(data = obj.primaryImageSmall),
                 contentDescription = obj.title,
                 contentScale = ContentScale.FillWidth,
                 modifier = Modifier
@@ -87,15 +101,16 @@ private fun ObjectDetails(
 
             SelectionContainer {
                 Column(Modifier.padding(12.dp)) {
-                    Text(obj.title, style = MaterialTheme.typography.h6)
+                    Text(obj.title, style = MaterialTheme.typography.h6.copy(fontWeight = FontWeight.Bold))
                     Spacer(Modifier.height(6.dp))
-                    LabeledInfo(stringResource(R.string.label_artist), obj.artistDisplayName)
-                    LabeledInfo(stringResource(R.string.label_date), obj.objectDate)
-                    LabeledInfo(stringResource(R.string.label_dimensions), obj.dimensions)
-                    LabeledInfo(stringResource(R.string.label_medium), obj.medium)
-                    LabeledInfo(stringResource(R.string.label_department), obj.department)
-                    LabeledInfo(stringResource(R.string.label_repository), obj.repository)
-                    LabeledInfo(stringResource(R.string.label_credits), obj.creditLine)
+                    LabeledInfo(stringResource(Res.string.label_title), obj.title)
+                    LabeledInfo(stringResource(Res.string.label_artist), obj.artistDisplayName)
+                    LabeledInfo(stringResource(Res.string.label_date), obj.objectDate)
+                    LabeledInfo(stringResource(Res.string.label_dimensions), obj.dimensions)
+                    LabeledInfo(stringResource(Res.string.label_medium), obj.medium)
+                    LabeledInfo(stringResource(Res.string.label_department), obj.department)
+                    LabeledInfo(stringResource(Res.string.label_repository), obj.repository)
+                    LabeledInfo(stringResource(Res.string.label_credits), obj.creditLine)
                 }
             }
         }
